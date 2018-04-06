@@ -34,7 +34,6 @@ export interface ISiteCategoryItemProps {
 }
 
 class SiteCategoryItem extends React.Component<ISiteCategoryItemProps & IManagedClasses<ISiteCategoryItemManagedClasses>, {}> {
-
     public render(): JSX.Element {
         return (
             <div className={this.props.managedClasses.category_item}>
