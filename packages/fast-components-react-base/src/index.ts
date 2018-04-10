@@ -2,6 +2,10 @@ import Button from "./button";
 export { Button };
 export * from "./button";
 
+import ContextMenuItem from "./context-menu-item";
+export { ContextMenuItem };
+export * from "./context-menu-item";
+
 import Divider from "./divider";
 export { Divider };
 export * from "./divider";
