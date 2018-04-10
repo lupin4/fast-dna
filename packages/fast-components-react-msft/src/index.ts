@@ -15,4 +15,3 @@ export { Hypertext };
 
 import ContextMenuItem from "./button";
 export { ContextMenuItem };
-
