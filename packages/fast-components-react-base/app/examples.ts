@@ -15,3 +15,10 @@ export { TypographyExamples };
 
 import HypertextExamples from "../src/hypertext/examples.data";
 export { HypertextExamples };
+
+import ContextMenuExamples from "../src/context-menu/examples.data";
+export { ContextMenuExamples };
+
+import ContextMenuItemExamples from "../src/context-menu-item/examples.data";
+export { ContextMenuItemExamples };
+
