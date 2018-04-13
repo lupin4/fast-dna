@@ -22,3 +22,6 @@ export { ContextMenuExamples };
 import ContextMenuItemExamples from "../src/context-menu-item/examples.data";
 export { ContextMenuItemExamples };
 
+import ContextMenuItemRadioExamples from "../src/context-menu-item-radio/examples.data";
+export { ContextMenuItemRadioExamples };
+
