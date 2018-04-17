@@ -55,17 +55,21 @@ export interface ISeparatedStylesheet<T, C> {
     dynamicStyles?: ComponentStyles<T, C>;
 }
 
+export interface HOCProps<S, C> {
+    stylesheet?: Partial<ComponentStyles<S, C>>;
+}
+
 /**
  * Main entry into the style manager. This function accepts a JSS style object and returns a
  * higher order component. That higher-order component can then be used to compose a component
  * with styles managed
  */
 /* tslint:disable-next-line */
-function manageJss<S, C>(styles?: ComponentStyles<S, C>): <T>(Component: React.ComponentType<T & IManagedClasses<S>>) => React.ComponentType<T> {
-    return function<T>(Component: React.ComponentType<T & IManagedClasses<S>>): React.ComponentType<T> {
+function manageJss<S, C>(styles?: ComponentStyles<S, C>): <T>(Component: React.ComponentType<T & IManagedClasses<S>>) => React.ComponentType<T & HOCProps<S, C>> {
+    return function<T>(Component: React.ComponentType<T & IManagedClasses<S>>): React.ComponentType<T & HOCProps<S, C>> {
 
         // Define the manager higher-order component inside of the return method of the higher-order function.
-        class JSSManager extends React.Component<T, IJSSManagerState> {
+        class JSSManager extends React.Component<T & HOCProps<S, C>, IJSSManagerState> {
             // TODO: figure out if there is a better way to type this object
             public static contextTypes: any = {
                 designSystem: propTypes.any
@@ -99,7 +103,7 @@ function manageJss<S, C>(styles?: ComponentStyles<S, C>): <T>(Component: React.C
              */
             private instanceId: string;
 
-            constructor(props: T) {
+            constructor(props: T & HOCProps<S, C>) {
                 super(props);
 
                 // On construction, check if the style object or component object have already been used.
@@ -132,6 +136,7 @@ function manageJss<S, C>(styles?: ComponentStyles<S, C>): <T>(Component: React.C
 
                 // Extract the static stylesheet and dynamic style object and apply them to the state
                 // object if they exist
+                
                 const staticStyleSheet: StyleSheet = separatedStylesInstance.staticStyleSheet;
                 const dynamicStyles: StyleSheet = separatedStylesInstance.dynamicStyles;
 
@@ -141,7 +146,7 @@ function manageJss<S, C>(styles?: ComponentStyles<S, C>): <T>(Component: React.C
 
                 if (Boolean(dynamicStyles)) {
                     state.dynamicStyleSheet = jss.createStyleSheet(
-                        JSSManager.separatedStyles[this.instanceId].dynamicStyles,
+                        this.getDynamicStyles(props),
                         { link: true }
                     );
                 }
@@ -158,15 +163,29 @@ function manageJss<S, C>(styles?: ComponentStyles<S, C>): <T>(Component: React.C
                 if (Boolean(this.state.dynamicStyleSheet)) {
                     // It appears we need to update the stylesheet for any style properties defined as functions
                     // to work.
-                    // TODO: We'll need to call this with a context if it exists
 
                     this.state.dynamicStyleSheet.attach().update(this.designSystem);
                 }
             }
 
-            public componentWillUpdate(nextProps: T, nextState: IJSSManagerState, nextContext: any): void {
+            public getDerivedStateFromProps(nextProps: any, nextState: any): any {
+                if (!isEqual(this.props.stylesheet, nextProps.stylesheet)) {
+                    jss.removeStyleSheet(this.state.dynamicStyleSheet);
+
+                    return {
+                        dynamicStyles: jss.createStyleSheet(this.getDynamicStyles(nextProps), {link: true})
+                    };
+                } else {
+                    return null;
+                }
+            }
+
+            public componentWillUpdate(nextProps: T & HOCProps<S, C>, nextState: IJSSManagerState, nextContext: any): void {
                 if (!isEqual(this.context, nextContext)) {
                     this.state.dynamicStyleSheet.update(nextContext.designSystem);
+                    // if props update and stylesheet is not identical, remove the dynamic sheet and re-create it
+                } else if (this.state !== nextState) {
+                    this.state.dynamicStyleSheet.update(this.designSystem);
                 }
             }
 
@@ -192,6 +211,10 @@ function manageJss<S, C>(styles?: ComponentStyles<S, C>): <T>(Component: React.C
 
             private get designSystem(): any {
                 return this.context && this.context.designSystem ? this.context.designSystem : {};
+            }
+
+            private getDynamicStyles(props: T & HOCProps<S, C>): StyleSheet {
+                return Object.assign({}, JSSManager.separatedStyles[this.instanceId].dynamicStyles, props);
             }
 
             /**
