@@ -3,13 +3,15 @@ node_js:
   - lts/*
 install:
   - npm install
-  - lerna bootstrap
+
 dist: trusty
 sudo: false
 env:
   global:
     - CC_TEST_REPORTER_ID=08a773cb4ea5811add5a45e12873e5cd2634c005568705cc37abfd5217617a32
 before_script:
+  - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+  - npm whoami
   - git config core.autocrlf false
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
@@ -18,26 +20,32 @@ script:
   - lerna run test --stream
 after_script:
   # See https://github.com/codeclimate/test-reporter/issues/263
+  - echo "Start after_script"
   - |
-      if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_EVENT_TYPE" != "cron" ]; then
-        for f in packages/*; do
-          if [ -d $f]; then
-            echo $f;
-            ./cc-test-reporter format-coverage -t lcov -o coverage/coverage.${f//\//-}.json $f/coverage/lcov.info;
-          fi
-        done;
-        ./cc-test-reporter sum-coverage -o coverage/coverage.total.json coverage/coverage.*.json;
-        ./cc-test-reporter upload-coverage -i coverage/coverage.total.json;
-      fi
+    if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_EVENT_TYPE" != "cron" ]; then
+      for f in packages/*; do
+        if [ -d $f]; then
+          echo $f;
+          ./cc-test-reporter format-coverage -t lcov -o coverage/coverage.${f//\//-}.json $f/coverage/lcov.info;
+        fi
+      done;
+      ./cc-test-reporter sum-coverage -o coverage/coverage.total.json coverage/coverage.*.json;
+      ./cc-test-reporter upload-coverage -i coverage/coverage.total.json;
+    fi
+  - test $TRAVIS_PULL_REQUEST = false && echo "Execution is not a pull request."
+  - test $TRAVIS_EVENT_TYPE = "cron" && echo "Execution by cron to deploy release."
+  - echo "Finish after_script."
 deploy:
-  provider: script
+  provider: npm
+  email: "EMAIL_ADDRESS"
   skip_cleanup: true
-  script:
-    - echo -e "//registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN\nemail=$NPM_AUTH_EMAIL" > ~/.npmrc
-    - cat ~/.npmrc
-    - NPM_USER=`npm whoami`
-    - echo -e "Publishing to npm as $NPM_USER...\n"
-    - lerna publish --yes --loglevel=silly
+  api_key:
+    secure: AQpAGAHolfKGOkO/RCPWF0nt4W5h43NNZJ0sIjPD6rHP7uqd9I/VAU6gYHTgWW0aLvP+OD/wFYMTP9M3U5VSdPBH1O+nTZW/iB/jTdxfJnbJ+yx/KtrgShur+V+s+ldLUQoMX//F7G/ljnknV34JAv01L4veeFkytthuca/9eMEYAnRjMnMyUSJApBli6V2lVK1O/xvyOcmPnhz1llWKgZYXjs7mwVwNP5xzFsmuFYCt6Ryn5tf3yj88M6mLyEzqKtb9HRPFxdflFj4zweG1AqvNRkU1lllfV/FWs3j1bfZRPVA1DmaYFKmtplKAKdHFUZNU8I2RTB+5z8btAxmQYw2BNhaxRWuxgFHA3NjG3pOecWVy3rhEUObuaavXqXHrnc/28H43nGM3nH3EbvmsLXGHl6gBlXe4q1xoYVHjDGU7fCngvOXU1zDIoXwDnb9hl76gnUPrdX8WTjhAUYwgD9YzdS0C5IP+8K2QeiVzvyT5pZUEOzkKiB39y+Fp9GYRjOVFcaLh0c/PuYnR0NIfQM6RRyvbupUG9vCz6cXXLPnHPtiAImYeSXkNQ3zV2OlUP2MF4J+cQfQkN5o4lGmgrEeJbgSfqudRUEpRSZflEuLdywC9XSngHbv9onxXryGBkiM3U3EXuqkClEutQrdDbb68Ty/mc/QyHeMo2IpJ87c=
+  script: 
+    - echo "Start publishing..."
+    - lerna bootstrap
+    - lerna publish --yes
+    - echo "Finish publishing..."
   on:
     branch: master
     condition: $TRAVIS_EVENT_TYPE = "cron"
