@@ -8,7 +8,8 @@ import { applyScreenReader } from "@microsoft/fast-jss-utilities";
 const styles: ComponentStyles<ILabelClassNameContract, IDesignSystem> = {
     label: {
         ...applyType("t8", "vp3"),
-        display: "inline-block"
+        display: "inline-block",
+        padding: "0"
     },
     label_hidden: {
         ...applyScreenReader()
